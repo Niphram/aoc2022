@@ -3,20 +3,29 @@ fn main() {
 
     println!("Advent of Code 2022 - Day 1");
 
-    // Split input into groups
-    let lines = input.split("\n\n");
+    // Split input into groups seperated by empty lines
+    let grouped_input = input.split("\n\n");
 
-    // Parse numbers and sum group
-    let mut calories: Vec<i32> = lines
-        .map(|l| l.split("\n").map(|c| c.parse::<i32>().unwrap()).sum())
-        .collect();
+    // Parse and sum for every group
+    let mut sums = grouped_input
+        .map(|l| {
+            // Parse all strings to numbers
+            let numbers = l.split("\n").flat_map(|c| c.parse::<u32>());
+
+            // Return sum
+            numbers.sum()
+        })
+        .collect::<Vec<_>>();
 
     // Sort and reverse vector
-    calories.sort();
-    calories.reverse();
+    sums.sort();
+    sums.reverse();
 
-    let highest = &calories[0];
-    let sum_highest_three = &calories[0..3].iter().sum::<i32>();
+    // Highest will be at the front
+    let highest = sums[0];
+
+    // Slice the first three and sum them
+    let sum_highest_three: u32 = sums[0..3].iter().sum();
 
     println!("Part 1: {}", highest);
     println!("Part 2: {}", sum_highest_three);
