@@ -83,7 +83,7 @@ impl FromStr for Outcome {
 }
 
 fn main() {
-    let input = include_str!("inputs/day2.txt");
+    let input = include_str!("input.txt");
 
     println!("Advent of Code 2022 - Day 2");
 
