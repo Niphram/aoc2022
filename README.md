@@ -6,4 +6,4 @@ This is my first time participating and I set myself the goal to solve all the p
 
 ## Run
 
-You can use `cargo run --bin day<X>` to execute the programs
+You can use `cargo run --bin day-[X]` to execute the programs
