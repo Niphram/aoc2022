@@ -35,11 +35,22 @@ impl Hand {
         }
     }
 
+    /// Plays this hand against the other hand and returns the outcome
+    fn play_against(&self, other: &Hand) -> Outcome {
+        if self.looses_to() == *other {
+            Outcome::LOOSE
+        } else if other.looses_to() == *self {
+            Outcome::WIN
+        } else {
+            Outcome::DRAW
+        }
+    }
+
     /// Returns the hand that would get the specified outcome against the other hand
-    fn from_outcome(other_hand: Hand, outcome: Outcome) -> Self {
+    fn from_outcome(other_hand: &Hand, outcome: &Outcome) -> Self {
         match outcome {
             Outcome::LOOSE => other_hand.wins_against(),
-            Outcome::DRAW => other_hand,
+            Outcome::DRAW => *other_hand,
             Outcome::WIN => other_hand.looses_to(),
         }
     }
@@ -54,23 +65,6 @@ impl FromStr for Hand {
             "B" | "Y" => Ok(Self::PAPER),
             "C" | "Z" => Ok(Self::SCISSORS),
             _ => Err(()),
-        }
-    }
-}
-
-impl Outcome {
-    /// Returns the outcome when playing two hands
-    ///
-    /// Outcome refers to hand a
-    fn from_hands(a: Hand, b: Hand) -> Self {
-        let (a_looses, b_looses) = (a.looses_to(), b.looses_to());
-
-        if a_looses == b {
-            Self::LOOSE
-        } else if a == b_looses {
-            Self::WIN
-        } else {
-            Self::DRAW
         }
     }
 }
@@ -97,11 +91,11 @@ fn main() {
         .split("\n")
         .map(|l| {
             // Parse both symbols into hands
-            let other_hand = Hand::from_str(&l[..1]).unwrap();
-            let own_hand = Hand::from_str(&l[2..]).unwrap();
+            let other_hand: Hand = l[..1].parse().unwrap();
+            let own_hand: Hand = l[2..].parse().unwrap();
 
             // Find outcome
-            let outcome = Outcome::from_hands(own_hand, other_hand);
+            let outcome = own_hand.play_against(&other_hand);
 
             // Calculate score
             outcome as u32 + own_hand as u32
@@ -112,11 +106,11 @@ fn main() {
         .split("\n")
         .map(|l| {
             // Parse symbols into hand and outcome
-            let other_hand = Hand::from_str(&l[..1]).unwrap();
-            let outcome = Outcome::from_str(&l[2..]).unwrap();
+            let other_hand: Hand = l[..1].parse().unwrap();
+            let outcome: Outcome = l[2..].parse().unwrap();
 
             // Find the hand that would achive the outcome
-            let own_hand = Hand::from_outcome(other_hand, outcome);
+            let own_hand = Hand::from_outcome(&other_hand, &outcome);
 
             // Calculate score
             outcome as u32 + own_hand as u32
