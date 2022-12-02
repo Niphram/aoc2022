@@ -37,10 +37,10 @@ impl Hand {
 
     /// Returns the hand that would get the specified outcome against the other hand
     fn from_outcome(other_hand: Hand, outcome: Outcome) -> Self {
-        match (other_hand, outcome) {
-            (o, Outcome::LOOSE) => o.wins_against(),
-            (o, Outcome::DRAW) => o,
-            (o, Outcome::WIN) => o.looses_to(),
+        match outcome {
+            Outcome::LOOSE => other_hand.wins_against(),
+            Outcome::DRAW => other_hand,
+            Outcome::WIN => other_hand.looses_to(),
         }
     }
 }
@@ -65,10 +65,12 @@ impl Outcome {
     fn from_hands(a: Hand, b: Hand) -> Self {
         let (a_looses, b_looses) = (a.looses_to(), b.looses_to());
 
-        match () {
-            _ if a_looses == b => Self::LOOSE,
-            _ if a == b_looses => Self::WIN,
-            _ => Self::DRAW,
+        if a_looses == b {
+            Self::LOOSE
+        } else if a == b_looses {
+            Self::WIN
+        } else {
+            Self::DRAW
         }
     }
 }
