@@ -1,24 +1,36 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
+
+/// Maps a-zA-Z to the range 1-52
+fn char_to_priority(c: char) -> u32 {
+    match c {
+        'a'..='z' => c as u32 - 96u32,
+        'A'..='Z' => c as u32 - 38u32,
+        _ => panic!(),
+    }
+}
 
 /// Compute the solution to part 1
 pub fn part_1(input: &str) -> String {
-    let lines_iter = input.split("\n");
+    // Split input into backpacks
+    let backpack_iter = input.split("\n");
 
-    let priorities_sum = lines_iter
+    let priorities_sum = backpack_iter
         .map(|l| {
-            let (a, b) = l.split_at(l.len() / 2);
+            // Split backpack at middle
+            let (left, right) = l.split_at(l.len() / 2);
 
-            let a = a.chars().collect::<HashSet<_>>();
-            let b = b.chars().collect::<HashSet<_>>();
+            // Collect chars into hashsets
+            let left_set = left.chars().collect::<BTreeSet<_>>();
+            let right_set = right.chars().collect::<BTreeSet<_>>();
 
-            a.intersection(&b)
-                .map(|c| match c {
-                    'a'..='z' => *c as u32 - 96u32,
-                    'A'..='Z' => *c as u32 - 38u32,
-                    _ => unreachable!(),
-                })
-                .sum::<u32>()
+            // Intersect both sets and take the result
+            // Only one item will be in here
+            let item = left_set.intersection(&right_set).next().unwrap();
+
+            // Get priority
+            char_to_priority(*item)
         })
+        // Sum all priorities
         .sum::<u32>();
 
     priorities_sum.to_string()
@@ -26,26 +38,33 @@ pub fn part_1(input: &str) -> String {
 
 /// Compute the solution to part 2
 pub fn part_2(input: &str) -> String {
+    // Split input into lines and collect into vector
     let lines = input.split("\n").collect::<Vec<_>>();
+
+    // Create chunks-iterator
     let lines_iter = lines.chunks(3);
 
     let priorities_sum = lines_iter
-        .map(|l| {
-            let badge = l
+        .map(|group| {
+            let badge_set = group
                 .iter()
-                .map(|l| l.chars().collect::<HashSet<_>>())
-                .reduce(|acc, item| acc.intersection(&item).copied().collect::<HashSet<_>>())
+                // Collect backback into hashset
+                .map(|backpack| backpack.chars().collect::<BTreeSet<_>>())
+                // intersect all backpacks
+                .reduce(|acc, backpack| {
+                    acc.intersection(&backpack)
+                        .copied()
+                        .collect::<BTreeSet<_>>()
+                })
                 .unwrap();
 
-            badge
-                .iter()
-                .map(|c| match c {
-                    'a'..='z' => *c as u32 - 96u32,
-                    'A'..='Z' => *c as u32 - 38u32,
-                    _ => unreachable!(),
-                })
-                .sum::<u32>()
+            // Only one item will be in here
+            let badge = badge_set.iter().next().unwrap();
+
+            // Get priority
+            char_to_priority(*badge)
         })
+        // Sum all priorities
         .sum::<u32>();
 
     priorities_sum.to_string()
