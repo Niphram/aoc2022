@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 /// Maps a-zA-Z to the range 1-52
 fn char_to_priority(c: char) -> u32 {
     match c {
-        'a'..='z' => c as u32 - 96u32,
-        'A'..='Z' => c as u32 - 38u32,
+        c @ 'a'..='z' => c as u32 - 96u32,
+        c @ 'A'..='Z' => c as u32 - 38u32,
         _ => panic!(),
     }
 }
