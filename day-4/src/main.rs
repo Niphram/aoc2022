@@ -1,28 +1,20 @@
-use std::{collections::BTreeSet, ops::RangeBounds};
-
 /// Compute the solution to part 1
 pub fn part_1(input: &str) -> String {
     let input_iter = input.split("\n");
 
     let count = input_iter
-        .filter(|line| {
-            let (left, right) = line.split_once(',').unwrap();
+        .filter_map(|line| {
+            let (left, right) = line.split_once(',')?;
 
-            let left_range = left.split_once('-').unwrap();
-            let right_range = right.split_once('-').unwrap();
+            let (l1, l2) = left.split_once('-')?;
+            let (r1, r2) = right.split_once('-')?;
 
-            let left_range = (
-                left_range.0.parse::<u32>().unwrap(),
-                left_range.1.parse::<u32>().unwrap(),
-            );
-            let right_range = (
-                right_range.0.parse::<u32>().unwrap(),
-                right_range.1.parse::<u32>().unwrap(),
-            );
+            let (l1, l2): (u32, u32) = (l1.parse().ok()?, l2.parse().ok()?);
+            let (r1, r2): (u32, u32) = (r1.parse().ok()?, r2.parse().ok()?);
 
-            (left_range.0 <= right_range.0 && left_range.1 >= right_range.1)
-                || (right_range.0 <= left_range.0 && right_range.1 >= left_range.1)
+            Some((l1 <= r1 && r2 <= l2) || (r1 <= l1 && l2 <= r2))
         })
+        .filter(|v| *v)
         .count();
 
     count.to_string()
@@ -33,29 +25,18 @@ pub fn part_2(input: &str) -> String {
     let input_iter = input.split("\n");
 
     let count = input_iter
-        .filter(|line| {
-            let (left, right) = line.split_once(',').unwrap();
+        .filter_map(|line| {
+            let (left, right) = line.split_once(',')?;
 
-            let left_range = left.split_once('-').unwrap();
-            let right_range = right.split_once('-').unwrap();
+            let (l1, l2) = left.split_once('-')?;
+            let (r1, r2) = right.split_once('-')?;
 
-            let left_range = (
-                left_range.0.parse::<u32>().unwrap(),
-                left_range.1.parse::<u32>().unwrap(),
-            );
-            let right_range = (
-                right_range.0.parse::<u32>().unwrap(),
-                right_range.1.parse::<u32>().unwrap(),
-            );
+            let (l1, l2): (u32, u32) = (l1.parse().ok()?, l2.parse().ok()?);
+            let (r1, r2): (u32, u32) = (r1.parse().ok()?, r2.parse().ok()?);
 
-            let l = left_range.0..=left_range.1;
-            let r = right_range.0..=right_range.1;
-
-            l.contains(r.start())
-                || l.contains(r.end())
-                || r.contains(l.start())
-                || r.contains(l.end())
+            Some(l1 <= r2 && r1 <= l2)
         })
+        .filter(|v| *v)
         .count();
 
     count.to_string()
