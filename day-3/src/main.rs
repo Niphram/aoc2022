@@ -3,14 +3,14 @@ use std::collections::BTreeSet;
 /// Maps a-zA-Z to the range 1-52
 fn char_to_priority(c: char) -> u32 {
     match c {
-        c @ 'a'..='z' => c as u32 - 96u32,
-        c @ 'A'..='Z' => c as u32 - 38u32,
+        c @ 'a'..='z' => c as u32 - 'a' as u32 + 1,
+        c @ 'A'..='Z' => c as u32 - 'A' as u32 + 27,
         _ => panic!(),
     }
 }
 
 /// Compute the solution to part 1
-pub fn part_1(input: &str) -> String {
+fn part_1(input: &str) -> String {
     // Split input into backpacks
     let backpack_iter = input.split("\n");
 
@@ -37,7 +37,7 @@ pub fn part_1(input: &str) -> String {
 }
 
 /// Compute the solution to part 2
-pub fn part_2(input: &str) -> String {
+fn part_2(input: &str) -> String {
     // Split input into lines and collect into vector
     let lines = input.split("\n").collect::<Vec<_>>();
 
