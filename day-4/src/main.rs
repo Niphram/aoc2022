@@ -12,9 +12,8 @@ pub fn part_1(input: &str) -> String {
             let (l1, l2): (u32, u32) = (l1.parse().ok()?, l2.parse().ok()?);
             let (r1, r2): (u32, u32) = (r1.parse().ok()?, r2.parse().ok()?);
 
-            Some((l1 <= r1 && r2 <= l2) || (r1 <= l1 && l2 <= r2))
+            ((l1 <= r1 && r2 <= l2) || (r1 <= l1 && l2 <= r2)).then_some(())
         })
-        .filter(|v| *v)
         .count();
 
     count.to_string()
@@ -34,9 +33,8 @@ pub fn part_2(input: &str) -> String {
             let (l1, l2): (u32, u32) = (l1.parse().ok()?, l2.parse().ok()?);
             let (r1, r2): (u32, u32) = (r1.parse().ok()?, r2.parse().ok()?);
 
-            Some(l1 <= r2 && r1 <= l2)
+            (l1 <= r2 && r1 <= l2).then_some(())
         })
-        .filter(|v| *v)
         .count();
 
     count.to_string()
