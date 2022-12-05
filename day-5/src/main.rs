@@ -1,6 +1,6 @@
 /// Returns the initial state of the stacks
 fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
-    let (input, header) = input.rsplit_once("\n").unwrap();
+    let (input, header) = input.rsplit_once("\n").expect("Split off last line");
 
     // Find out how many stacks we need
     let stack_count = (header.len() + 1) / 4;
@@ -23,7 +23,7 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
             iters
                 .iter_mut()
                 // flat-map to remove None from the stacks
-                .flat_map(|n| n.next().unwrap())
+                .flat_map(|n| n.next().expect("Iterator can't be empty"))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>()
@@ -34,7 +34,10 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
 fn parse_instruction(line: &str) -> (usize, usize, usize) {
     let values = line
         .split(" ")
-        .flat_map(|n| n.parse::<usize>())
+        // Skip one and step by two
+        .skip(1)
+        .step_by(2)
+        .map(|n| n.parse::<usize>().expect("Parse number in instruction"))
         .collect::<Vec<_>>();
 
     (values[0], values[1] - 1, values[2] - 1)
@@ -43,7 +46,7 @@ fn parse_instruction(line: &str) -> (usize, usize, usize) {
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
     // Split input into lines
-    let (stacks, instructions) = input.split_once("\n\n").unwrap();
+    let (stacks, instructions) = input.split_once("\n\n").expect("Split at empty line");
 
     // Parse state
     let mut stacks = parse_initial_state(stacks);
@@ -55,19 +58,22 @@ fn part_1(input: &str) -> String {
 
         // Repeat pop and push for the specified count
         for _ in 0..count {
-            let item = (&mut stacks[from]).pop().unwrap();
+            let item = (&mut stacks[from]).pop().expect("Stack can't be empty");
             (&mut stacks[to]).push(item);
         }
     }
 
     // Get top crates and return
-    stacks.iter().map(|s| *s.last().unwrap()).collect()
+    stacks
+        .iter()
+        .map(|s| s.last().expect("Stack should not be empty"))
+        .collect()
 }
 
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
     // Split input into lines
-    let (stacks, instructions) = input.split_once("\n\n").unwrap();
+    let (stacks, instructions) = input.split_once("\n\n").expect("Split at empty line");
 
     let mut stacks = parse_initial_state(stacks);
 
@@ -100,7 +106,10 @@ fn part_2(input: &str) -> String {
     }
 
     // Get top crates and return
-    stacks.iter().map(|s| *s.last().unwrap()).collect()
+    stacks
+        .iter()
+        .map(|s| s.last().expect("Stack should not be empty"))
+        .collect()
 }
 
 fn main() {
