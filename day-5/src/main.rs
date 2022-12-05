@@ -1,3 +1,16 @@
+/// Mutably borrows two elements from a slice
+fn index_mut_2<'a, T>(slice: &'a mut [T], idx1: usize, idx2: usize) -> (&'a mut T, &'a mut T) {
+    // Make sure we are not referencing the same elements
+    assert!(idx1 != idx2);
+
+    // Get raw pointers to elements
+    let a: *mut T = &mut slice[idx1];
+    let b: *mut T = &mut slice[idx2];
+
+    // Dereference elements. Safety is guaranteed.
+    unsafe { (&mut *a, &mut *b) }
+}
+
 /// Returns the initial state of the stacks
 fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
     let (input, header) = input.rsplit_once("\n").expect("Split off last line");
@@ -56,11 +69,13 @@ fn part_1(input: &str) -> String {
         // Get parsed instructions
         let (count, from, to) = parse_instruction(&instruction);
 
-        // Repeat pop and push for the specified count
-        for _ in 0..count {
-            let item = (&mut stacks[from]).pop().expect("Stack can't be empty");
-            (&mut stacks[to]).push(item);
-        }
+        let (from, to) = index_mut_2(&mut stacks, from, to);
+
+        // Remove `count` elements from the end and reverse
+        let mut moved = from.drain(from.len() - count..).rev();
+
+        // Append moved items to target stack
+        to.extend(&mut moved);
     }
 
     // Get top crates and return
@@ -82,17 +97,7 @@ fn part_2(input: &str) -> String {
         // Get parsed instructions
         let (count, from, to) = parse_instruction(&instruction);
 
-        let (from_vec, to_vec) = {
-            // Make sure we are not referencing the same vectors
-            assert!(from != to);
-
-            // Get raw pointers to stacks
-            let from: *mut _ = &mut stacks[from];
-            let to: *mut _ = &mut stacks[to];
-
-            // Dereference stacks. Safety is guaranteed.
-            unsafe { (&mut *from, &mut *to) }
-        };
+        let (from_vec, to_vec) = index_mut_2(&mut stacks, from, to);
 
         // Remove `count` elements from the end
         let mut moved = from_vec.drain(from_vec.len() - count..);
