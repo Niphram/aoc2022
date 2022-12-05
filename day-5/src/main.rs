@@ -82,21 +82,16 @@ fn part_2(input: &str) -> String {
         // Get parsed instructions
         let (count, from, to) = parse_instruction(&instruction);
 
-        let (from_vec, to_vec) = unsafe {
+        let (from_vec, to_vec) = {
             // Make sure we are not referencing the same vectors
-            assert!(
-                from != to,
-                "stacks cannot be the same (from {} to {})",
-                from + 1,
-                to + 1
-            );
+            assert!(from != to);
 
             // Get raw pointers to stacks
             let from: *mut _ = &mut stacks[from];
             let to: *mut _ = &mut stacks[to];
 
             // Dereference stacks. Safety is guaranteed.
-            (&mut *from, &mut *to)
+            unsafe { (&mut *from, &mut *to) }
         };
 
         // Remove `count` elements from the end
