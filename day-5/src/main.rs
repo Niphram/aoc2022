@@ -5,7 +5,7 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
     // Find out how many stacks we need
     let stack_count = (header.len() + 1) / 4;
 
-    let mut iters = input
+    let mut iters: Vec<_> = input
         // Reverse split and skip one line (The one with the stack numbers)
         .rsplit("\n")
         .map(|line| {
@@ -15,7 +15,7 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
                 .step_by(4)
                 .map(|c| (c != ' ').then_some(c))
         })
-        .collect::<Vec<_>>();
+        .collect();
 
     // Build vector of stacks in the correct order
     (0..stack_count)
@@ -24,9 +24,9 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
                 .iter_mut()
                 // flat-map to remove None from the stacks
                 .flat_map(|n| n.next().expect("Iterator can't be empty"))
-                .collect::<Vec<_>>()
+                .collect()
         })
-        .collect::<Vec<_>>()
+        .collect()
 }
 
 /// Parses an instruction like `move 1 from 2 to 3`
@@ -37,7 +37,7 @@ fn parse_instruction(line: &str) -> (usize, usize, usize) {
         // Skip one and step by two
         .skip(1)
         .step_by(2)
-        .map(|n| n.parse::<usize>().expect("Parse number in instruction"))
+        .map(|n| n.parse().expect("Parse number in instruction"))
         .collect::<Vec<_>>();
 
     (values[0], values[1] - 1, values[2] - 1)
@@ -91,18 +91,19 @@ fn part_2(input: &str) -> String {
                 to + 1
             );
 
-            let from = &mut stacks[from] as *mut Vec<char>;
-            let to = &mut stacks[to] as *mut Vec<char>;
+            // Get raw pointers to stacks
+            let from: *mut _ = &mut stacks[from];
+            let to: *mut _ = &mut stacks[to];
 
-            // This is safe now
+            // Dereference stacks. Safety is guaranteed.
             (&mut *from, &mut *to)
         };
 
-        // Remove `count` from the end
-        let mut moved = from_vec.drain(from_vec.len() - count..).collect();
+        // Remove `count` elements from the end
+        let mut moved = from_vec.drain(from_vec.len() - count..);
 
         // Append moved items to target stack
-        to_vec.append(&mut moved);
+        to_vec.extend(&mut moved);
     }
 
     // Get top crates and return
