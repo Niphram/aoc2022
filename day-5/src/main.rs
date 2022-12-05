@@ -1,49 +1,67 @@
+/// Returns the initial state of the stacks
+fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
+    let (input, header) = input.rsplit_once("\n").unwrap();
+
+    // Find out how many stacks we need
+    let stack_count = (header.len() + 1) / 4;
+
+    let mut iters = input
+        // Reverse split and skip one line (The one with the stack numbers)
+        .rsplit("\n")
+        .map(|line| {
+            // Get all the crate labels
+            line.chars()
+                .skip(1)
+                .step_by(4)
+                .map(|c| (c != ' ').then_some(c))
+        })
+        .collect::<Vec<_>>();
+
+    // Build vector of stacks in the correct order
+    (0..stack_count)
+        .map(|_| {
+            iters
+                .iter_mut()
+                // flat-map to remove None from the stacks
+                .flat_map(|n| n.next().unwrap())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
+}
+
+/// Parses an instruction like `move 1 from 2 to 3`
+/// from and to reduced by one to make them index at 0
+fn parse_instruction(line: &str) -> (usize, usize, usize) {
+    let values = line
+        .split(" ")
+        .flat_map(|n| n.parse::<usize>())
+        .collect::<Vec<_>>();
+
+    (values[0], values[1] - 1, values[2] - 1)
+}
+
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
     // Split input into lines
     let (stacks, instructions) = input.split_once("\n\n").unwrap();
 
-    let mut stacks_str = stacks.split("\n").collect::<Vec<_>>();
-    stacks_str.reverse();
+    // Parse state
+    let mut stacks = parse_initial_state(stacks);
 
-    let mut stacks = vec![];
-
-    for idx in (0..=stacks_str[0].len()).step_by(4) {
-        let items = stacks_str[1..]
-            .iter()
-            .map_while(|line| {
-                let item = &line[idx + 1..idx + 2];
-
-                (item != " ").then_some(item)
-            })
-            .collect::<Vec<_>>();
-
-        stacks.push(items);
-    }
-
+    // Execute all instructions
     for instruction in instructions.split("\n") {
-        let mut parser = instruction
-            .split(" ")
-            .skip(1)
-            .step_by(2)
-            .map(|n| n.parse::<usize>().unwrap());
+        // Get parsed instructions
+        let (count, from, to) = parse_instruction(&instruction);
 
-        let count = parser.next().unwrap();
-        let from = parser.next().unwrap() - 1;
-        let to = parser.next().unwrap() - 1;
-
+        // Repeat pop and push for the specified count
         for _ in 0..count {
-            let item = stacks.get_mut(from).unwrap().pop().unwrap();
-            stacks.get_mut(to).unwrap().push(item);
+            let item = (&mut stacks[from]).pop().unwrap();
+            (&mut stacks[to]).push(item);
         }
     }
 
-    stacks
-        .iter()
-        .map(|s| *s.last().unwrap())
-        .collect::<Vec<&str>>()
-        .join("")
-        .into()
+    // Get top crates and return
+    stacks.iter().map(|s| *s.last().unwrap()).collect()
 }
 
 /// Compute the solution to part 2
@@ -51,52 +69,38 @@ fn part_2(input: &str) -> String {
     // Split input into lines
     let (stacks, instructions) = input.split_once("\n\n").unwrap();
 
-    let mut stacks_str = stacks.split("\n").collect::<Vec<_>>();
-    stacks_str.reverse();
+    let mut stacks = parse_initial_state(stacks);
 
-    let mut stacks = vec![];
-
-    for idx in (0..=stacks_str[0].len()).step_by(4) {
-        let items = stacks_str[1..]
-            .iter()
-            .map_while(|line| {
-                let item = &line[idx + 1..idx + 2];
-
-                (item != " ").then_some(item)
-            })
-            .collect::<Vec<_>>();
-
-        stacks.push(items);
-    }
-
+    // Execute all instructions
     for instruction in instructions.split("\n") {
-        let mut parser = instruction
-            .split(" ")
-            .skip(1)
-            .step_by(2)
-            .map(|n| n.parse::<usize>().unwrap());
+        // Get parsed instructions
+        let (count, from, to) = parse_instruction(&instruction);
 
-        let count = parser.next().unwrap();
-        let from = parser.next().unwrap() - 1;
-        let to = parser.next().unwrap() - 1;
+        let (from_vec, to_vec) = unsafe {
+            // Make sure we are not referencing the same vectors
+            assert!(
+                from != to,
+                "stacks cannot be the same (from {} to {})",
+                from + 1,
+                to + 1
+            );
 
-        let mut temp = vec![];
+            let from = &mut stacks[from] as *mut Vec<char>;
+            let to = &mut stacks[to] as *mut Vec<char>;
 
-        for _ in 0..count {
-            temp.push(stacks.get_mut(from).unwrap().pop().unwrap());
-        }
+            // This is safe now
+            (&mut *from, &mut *to)
+        };
 
-        temp.reverse();
+        // Remove `count` from the end
+        let mut moved = from_vec.drain(from_vec.len() - count..).collect();
 
-        stacks.get_mut(to).unwrap().append(&mut temp);
+        // Append moved items to target stack
+        to_vec.append(&mut moved);
     }
 
-    stacks
-        .iter()
-        .map(|s| *s.last().unwrap())
-        .collect::<Vec<&str>>()
-        .join("")
-        .into()
+    // Get top crates and return
+    stacks.iter().map(|s| *s.last().unwrap()).collect()
 }
 
 fn main() {
