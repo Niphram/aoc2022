@@ -1,7 +1,7 @@
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
     // Split input into lines
-    let input_iter = input.split("\n");
+    let input_iter = input.lines();
 
     let count = input_iter
         // Use filter_map instead of map
@@ -29,7 +29,7 @@ fn part_1(input: &str) -> String {
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
     // Split input into lines
-    let input_iter = input.split("\n");
+    let input_iter = input.lines();
 
     let count = input_iter
         // Use filter_map instead of map

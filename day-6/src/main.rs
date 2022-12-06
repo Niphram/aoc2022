@@ -14,7 +14,7 @@ fn find_marker(input: &str, length: usize) -> Option<usize> {
         .position(|w| w.iter().collect::<std::collections::HashSet<_>>().len() == length);
 
     // Add `length` to correct the index
-    idx.and_then(|idx| Some(idx + length))
+    idx.map(|idx| idx + length)
 }
 
 fn main() {
@@ -22,8 +22,8 @@ fn main() {
 
     println!("Advent of Code 2022 - Day 6");
 
-    let part_1 = find_marker(&input, 4).expect("Index of marker");
-    let part_2 = find_marker(&input, 14).expect("Index of marker");
+    let part_1 = find_marker(input, 4).expect("Index of marker");
+    let part_2 = find_marker(input, 14).expect("Index of marker");
 
     println!("Part 1: {part_1}");
     println!("Part 2: {part_2}");

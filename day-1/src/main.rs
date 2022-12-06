@@ -10,7 +10,7 @@ fn main() {
     let mut sums = grouped_input
         .map(|l| {
             // Parse all strings to numbers
-            let numbers = l.split("\n").flat_map(|c| c.parse::<u32>());
+            let numbers = l.lines().flat_map(|c| c.parse::<u32>());
 
             // Return sum
             numbers.sum()

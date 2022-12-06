@@ -12,7 +12,7 @@ fn char_to_priority(c: char) -> u32 {
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
     // Split input into backpacks
-    let backpack_iter = input.split("\n");
+    let backpack_iter = input.lines();
 
     let priorities_sum = backpack_iter
         .map(|l| {
@@ -39,7 +39,7 @@ fn part_1(input: &str) -> String {
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
     // Split input into lines and collect into vector
-    let lines = input.split("\n").collect::<Vec<_>>();
+    let lines = input.lines().collect::<Vec<_>>();
 
     // Create chunks-iterator
     let lines_iter = lines.chunks(3);

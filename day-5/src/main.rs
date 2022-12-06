@@ -1,5 +1,5 @@
 /// Mutably borrows two elements from a slice
-fn index_mut_2<'a, T>(slice: &'a mut [T], idx1: usize, idx2: usize) -> (&'a mut T, &'a mut T) {
+fn index_mut_2<T>(slice: &mut [T], idx1: usize, idx2: usize) -> (&mut T, &mut T) {
     // Make sure we are not referencing the same elements
     assert!(idx1 != idx2);
 
@@ -13,14 +13,15 @@ fn index_mut_2<'a, T>(slice: &'a mut [T], idx1: usize, idx2: usize) -> (&'a mut 
 
 /// Returns the initial state of the stacks
 fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
-    let (input, header) = input.rsplit_once("\n").expect("Split off last line");
+    let (input, header) = input.rsplit_once('\n').expect("Split off last line");
 
     // Find out how many stacks we need
     let stack_count = (header.len() + 1) / 4;
 
     let mut iters: Vec<_> = input
         // Reverse split and skip one line (The one with the stack numbers)
-        .rsplit("\n")
+        .lines()
+        .rev()
         .map(|line| {
             // Get all the crate labels
             line.chars()
@@ -46,7 +47,7 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
 /// from and to reduced by one to make them index at 0
 fn parse_instruction(line: &str) -> (usize, usize, usize) {
     let values = line
-        .split(" ")
+        .split(' ')
         // Skip one and step by two
         .skip(1)
         .step_by(2)
@@ -65,9 +66,9 @@ fn part_1(input: &str) -> String {
     let mut stacks = parse_initial_state(stacks);
 
     // Execute all instructions
-    for instruction in instructions.split("\n") {
+    for instruction in instructions.lines() {
         // Get parsed instructions
-        let (count, from, to) = parse_instruction(&instruction);
+        let (count, from, to) = parse_instruction(instruction);
 
         let (from, to) = index_mut_2(&mut stacks, from, to);
 
@@ -93,9 +94,9 @@ fn part_2(input: &str) -> String {
     let mut stacks = parse_initial_state(stacks);
 
     // Execute all instructions
-    for instruction in instructions.split("\n") {
+    for instruction in instructions.lines() {
         // Get parsed instructions
-        let (count, from, to) = parse_instruction(&instruction);
+        let (count, from, to) = parse_instruction(instruction);
 
         let (from_vec, to_vec) = index_mut_2(&mut stacks, from, to);
 

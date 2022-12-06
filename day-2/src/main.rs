@@ -3,55 +3,55 @@ use std::str::FromStr;
 /// A hand that can be played in rock-paper-scissors
 #[derive(PartialEq, Eq, Clone, Copy)]
 enum Hand {
-    ROCK = 1,
-    PAPER = 2,
-    SCISSORS = 3,
+    Rock = 1,
+    Paper = 2,
+    Scissors = 3,
 }
 
 /// A possible outcome of rock-paper-scissors
 #[derive(PartialEq, Eq, Clone, Copy)]
 enum Outcome {
-    LOOSE = 0,
-    DRAW = 3,
-    WIN = 6,
+    Loose = 0,
+    Draw = 3,
+    Win = 6,
 }
 
 impl Hand {
     /// Returns the hand that this hand would win against
     fn wins_against(&self) -> Self {
         match self {
-            Self::ROCK => Self::SCISSORS,
-            Self::PAPER => Self::ROCK,
-            Self::SCISSORS => Self::PAPER,
+            Self::Rock => Self::Scissors,
+            Self::Paper => Self::Rock,
+            Self::Scissors => Self::Paper,
         }
     }
 
     /// Returns the hand that this hand would loose to
     fn looses_to(&self) -> Self {
         match self {
-            Self::ROCK => Self::PAPER,
-            Self::PAPER => Self::SCISSORS,
-            Self::SCISSORS => Self::ROCK,
+            Self::Rock => Self::Paper,
+            Self::Paper => Self::Scissors,
+            Self::Scissors => Self::Rock,
         }
     }
 
     /// Plays this hand against the other hand and returns the outcome
     fn play_against(&self, other: &Hand) -> Outcome {
         if self.looses_to() == *other {
-            Outcome::LOOSE
+            Outcome::Loose
         } else if other.looses_to() == *self {
-            Outcome::WIN
+            Outcome::Win
         } else {
-            Outcome::DRAW
+            Outcome::Draw
         }
     }
 
     /// Returns the hand that would get the specified outcome against the other hand
     fn from_outcome(other_hand: &Hand, outcome: &Outcome) -> Self {
         match outcome {
-            Outcome::LOOSE => other_hand.wins_against(),
-            Outcome::DRAW => *other_hand,
-            Outcome::WIN => other_hand.looses_to(),
+            Outcome::Loose => other_hand.wins_against(),
+            Outcome::Draw => *other_hand,
+            Outcome::Win => other_hand.looses_to(),
         }
     }
 }
@@ -61,9 +61,9 @@ impl FromStr for Hand {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "A" | "X" => Ok(Self::ROCK),
-            "B" | "Y" => Ok(Self::PAPER),
-            "C" | "Z" => Ok(Self::SCISSORS),
+            "A" | "X" => Ok(Self::Rock),
+            "B" | "Y" => Ok(Self::Paper),
+            "C" | "Z" => Ok(Self::Scissors),
             _ => Err(()),
         }
     }
@@ -74,9 +74,9 @@ impl FromStr for Outcome {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "X" => Ok(Self::LOOSE),
-            "Y" => Ok(Self::DRAW),
-            "Z" => Ok(Self::WIN),
+            "X" => Ok(Self::Loose),
+            "Y" => Ok(Self::Draw),
+            "Z" => Ok(Self::Win),
             _ => Err(()),
         }
     }
@@ -88,7 +88,7 @@ fn main() {
     println!("Advent of Code 2022 - Day 2");
 
     let score_part_1: u32 = input
-        .split("\n")
+        .lines()
         .map(|l| {
             // Parse both symbols into hands
             let other_hand: Hand = l[..1].parse().unwrap();
@@ -103,7 +103,7 @@ fn main() {
         .sum();
 
     let score_part_2: u32 = input
-        .split("\n")
+        .lines()
         .map(|l| {
             // Parse symbols into hand and outcome
             let other_hand: Hand = l[..1].parse().unwrap();
