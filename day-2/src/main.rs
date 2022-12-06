@@ -18,7 +18,7 @@ enum Outcome {
 
 impl Hand {
     /// Returns the hand that this hand would win against
-    fn wins_against(&self) -> Self {
+    const fn wins_against(self) -> Self {
         match self {
             Self::Rock => Self::Scissors,
             Self::Paper => Self::Rock,
@@ -27,7 +27,7 @@ impl Hand {
     }
 
     /// Returns the hand that this hand would loose to
-    fn looses_to(&self) -> Self {
+    const fn looses_to(self) -> Self {
         match self {
             Self::Rock => Self::Paper,
             Self::Paper => Self::Scissors,
@@ -36,10 +36,10 @@ impl Hand {
     }
 
     /// Plays this hand against the other hand and returns the outcome
-    fn play_against(&self, other: &Hand) -> Outcome {
-        if self.looses_to() == *other {
+    fn play_against(self, other: Self) -> Outcome {
+        if self.looses_to() == other {
             Outcome::Loose
-        } else if other.looses_to() == *self {
+        } else if other.looses_to() == self {
             Outcome::Win
         } else {
             Outcome::Draw
@@ -47,10 +47,10 @@ impl Hand {
     }
 
     /// Returns the hand that would get the specified outcome against the other hand
-    fn from_outcome(other_hand: &Hand, outcome: &Outcome) -> Self {
+    const fn from_outcome(other_hand: Self, outcome: Outcome) -> Self {
         match outcome {
             Outcome::Loose => other_hand.wins_against(),
-            Outcome::Draw => *other_hand,
+            Outcome::Draw => other_hand,
             Outcome::Win => other_hand.looses_to(),
         }
     }
@@ -95,7 +95,7 @@ fn main() {
             let own_hand: Hand = l[2..].parse().unwrap();
 
             // Find outcome
-            let outcome = own_hand.play_against(&other_hand);
+            let outcome = own_hand.play_against(other_hand);
 
             // Calculate score
             outcome as u32 + own_hand as u32
@@ -110,7 +110,7 @@ fn main() {
             let outcome: Outcome = l[2..].parse().unwrap();
 
             // Find the hand that would achive the outcome
-            let own_hand = Hand::from_outcome(&other_hand, &outcome);
+            let own_hand = Hand::from_outcome(other_hand, outcome);
 
             // Calculate score
             outcome as u32 + own_hand as u32

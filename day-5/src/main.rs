@@ -36,8 +36,8 @@ fn parse_initial_state(input: &str) -> Vec<Vec<char>> {
         .map(|_| {
             iters
                 .iter_mut()
-                // flat-map to remove None from the stacks
-                .flat_map(|n| n.next().expect("Iterator can't be empty"))
+                // filter-map to remove None from the stacks
+                .filter_map(|n| n.next().expect("Iterator can't be empty"))
                 .collect()
         })
         .collect()

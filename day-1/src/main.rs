@@ -10,7 +10,7 @@ fn main() {
     let mut sums = grouped_input
         .map(|l| {
             // Parse all strings to numbers
-            let numbers = l.lines().flat_map(|c| c.parse::<u32>());
+            let numbers = l.lines().flat_map(str::parse::<u32>);
 
             // Return sum
             numbers.sum()
@@ -18,7 +18,7 @@ fn main() {
         .collect::<Vec<_>>();
 
     // Sort and reverse vector
-    sums.sort();
+    sums.sort_unstable();
     sums.reverse();
 
     // Highest will be at the front
