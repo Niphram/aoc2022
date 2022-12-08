@@ -72,53 +72,59 @@ impl<'a> Directory<'a> {
     }
 }
 
-enum Command<'a> {
-    Cd(&'a str),
-    Ls(),
-}
-
-fn parse_command(input: &str) -> Command {
-    let command = &input[1..3];
-
-    match command {
-        "cd" => Command::Cd(&input[4..]),
-        "ls" => Command::Ls(),
-        _ => panic!("Unknown command"),
-    }
-}
-
+#[derive(Debug)]
 enum Entry<'a> {
     Dir(&'a str),
     File(&'a str, usize),
 }
 
-fn parse_ls(input: &str) -> Entry {
-    if input.starts_with("dir") {
-        Entry::Dir(&input[4..])
-    } else {
-        let parts: Vec<_> = input.split_ascii_whitespace().collect();
-        let size: usize = parts[0].parse().expect("Parse filesize");
-        let name = &parts[1];
+#[derive(Debug)]
+enum Command<'a> {
+    Cd(&'a str),
+    Ls(Vec<Entry<'a>>),
+}
 
-        Entry::File(name, size)
-    }
+fn parse_input(input: &str) -> Vec<Command> {
+    input
+        .split('$')
+        .skip(1)
+        .map(|c| {
+            let command = &c[1..3];
+
+            match command {
+                "cd" => Command::Cd(&c.lines().next().unwrap()[4..]),
+                "ls" => Command::Ls(
+                    c.lines()
+                        .skip(1)
+                        .map(|e| {
+                            if e.starts_with("dir") {
+                                Entry::Dir(&e[4..])
+                            } else {
+                                let parts = e.split_once(' ').unwrap();
+                                let size: usize = parts.0.parse().expect("Parse filesize");
+                                let name = &parts.1;
+
+                                Entry::File(name, size)
+                            }
+                        })
+                        .collect(),
+                ),
+                _ => panic!("Unknown command"),
+            }
+        })
+        .collect()
 }
 
 fn parse_dir(input: &str) -> Directory {
-    let root_dir = Rc::new(RefCell::new(Directory::new()));
+    let commands = parse_input(input);
 
+    let root_dir = Rc::new(RefCell::new(Directory::new()));
     let mut cur_dir = Rc::clone(&root_dir);
 
-    for command_str in input.split('$').skip(1) {
-        let lines: Vec<_> = command_str.lines().collect();
-
-        let command = parse_command(lines[0]);
-
+    for command in commands {
         match command {
-            Command::Ls() => {
-                for entry in lines[1..].iter() {
-                    let entry = parse_ls(entry);
-
+            Command::Ls(entries) => {
+                for entry in entries {
                     match entry {
                         Entry::File(name, size) => {
                             cur_dir.borrow_mut().add_file(name.into(), size);
@@ -166,9 +172,7 @@ fn part_1(input: &str) -> String {
 fn part_2(input: &str) -> String {
     let root_dir = parse_dir(input);
 
-    let total = root_dir.size();
-
-    let need_to_free = total - 400000;
+    let need_to_free = root_dir.size() - 40000000;
 
     let size: usize = *root_dir
         .get_sizes()
