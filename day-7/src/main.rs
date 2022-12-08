@@ -6,13 +6,13 @@ use std::{
 };
 
 #[derive(Debug)]
-struct Directory {
-    parent: Option<Weak<RefCell<Directory>>>,
-    subdirs: HashMap<String, Rc<RefCell<Directory>>>,
-    files: HashMap<String, usize>,
+struct Directory<'a> {
+    parent: Option<Weak<RefCell<Directory<'a>>>>,
+    subdirs: HashMap<&'a str, Rc<RefCell<Directory<'a>>>>,
+    files: HashMap<&'a str, usize>,
 }
 
-impl Directory {
+impl<'a> Directory<'a> {
     fn new() -> Self {
         Self {
             parent: None,
@@ -21,7 +21,7 @@ impl Directory {
         }
     }
 
-    fn with_parent(parent: Weak<RefCell<Directory>>) -> Self {
+    fn with_parent(parent: Weak<RefCell<Directory<'a>>>) -> Self {
         Self {
             parent: Some(parent),
             subdirs: HashMap::new(),
@@ -29,11 +29,11 @@ impl Directory {
         }
     }
 
-    fn add_dir(&mut self, name: String, dir: Directory) {
+    fn add_dir(&mut self, name: &'a str, dir: Directory<'a>) {
         self.subdirs.insert(name, Rc::new(RefCell::new(dir)));
     }
 
-    fn add_file(&mut self, name: String, size: usize) {
+    fn add_file(&mut self, name: &'a str, size: usize) {
         self.files.insert(name, size);
     }
 
@@ -64,7 +64,7 @@ impl Directory {
         subdir_sizes
     }
 
-    fn get_subdir(&self, name: String) -> Rc<RefCell<Directory>> {
+    fn get_subdir(&self, name: &'a str) -> Rc<RefCell<Directory<'a>>> {
         self.subdirs
             .get(&name)
             .expect("Get child directory")
