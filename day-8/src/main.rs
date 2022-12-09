@@ -107,7 +107,7 @@ fn part_2(input: &str) -> String {
 fn main() {
     let input = include_str!("input.txt");
 
-    println!("Advent of Code 2022 - Day 7");
+    println!("Advent of Code 2022 - Day 8");
 
     let part_1 = part_1(input);
     let part_2 = part_2(input);
