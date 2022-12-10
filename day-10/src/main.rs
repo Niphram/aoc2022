@@ -2,74 +2,77 @@
 enum Instruction {
     Noop,
     Addx(isize),
-    Executing,
+}
+
+/// Returns the value of the x-register after every cycle
+/// Starts with cycle 0 ('during first cycle')
+fn execute_input(input: &str) -> Vec<isize> {
+    let mut x_reg = 1;
+
+    // Pad the start to include cycle 0
+    std::iter::once(x_reg)
+        .chain(
+            input
+                .lines()
+                .flat_map(|l| match &l[0..4] {
+                    "noop" => vec![Instruction::Noop],
+                    "addx" => vec![
+                        // Pad every Addx with a Noop to make timing easy
+                        Instruction::Noop,
+                        Instruction::Addx(l[5..].parse().unwrap()),
+                    ],
+                    _ => panic!("Unknown instruction"),
+                })
+                .map(|ins| {
+                    // Execute all instructions and return x-register
+                    if let Instruction::Addx(v) = ins {
+                        x_reg += v;
+                    }
+
+                    x_reg
+                }),
+        )
+        .collect()
 }
 
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
-    let mut instructions = input.lines().flat_map(|l| match &l[0..4] {
-        "noop" => vec![Instruction::Noop],
-        "addx" => vec![
-            Instruction::Executing,
-            Instruction::Addx(l[5..].parse().unwrap()),
-        ],
-        _ => panic!("Unknown instruction"),
-    });
+    let register_trace = execute_input(input);
 
-    let mut x_reg = 1;
-    let mut cycle = 1;
-
-    let mut signal_strength = 0;
-    while let Some(ins) = instructions.next() {
-        if (cycle + 20) % 40 == 0 {
-            signal_strength += cycle * x_reg;
-        }
-
-        if let Instruction::Addx(v) = ins {
-            x_reg += v;
-        }
-
-        cycle += 1;
-    }
+    let signal_strength: isize = register_trace
+        .iter()
+        .enumerate()
+        // Only include cycle 20, 60, 100 and so on
+        .filter(|(cycle, _)| (cycle + 21) % 40 == 0)
+        // Calculate signal strength
+        .map(|(cycle, x_reg)| (cycle as isize + 1) * x_reg)
+        .sum();
 
     signal_strength.to_string()
 }
 
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
-    let mut instructions = input.lines().flat_map(|l| match &l[0..4] {
-        "noop" => vec![Instruction::Noop],
-        "addx" => vec![
-            Instruction::Executing,
-            Instruction::Addx(l[5..].parse().unwrap()),
-        ],
-        _ => panic!("Unknown instruction"),
-    });
+    let register_trace = execute_input(input);
 
-    let mut x_reg = 1;
-    let mut cycle = 0;
-
-    while let Some(ins) = instructions.next() {
-        let sprite = (x_reg - 1)..=(x_reg + 1);
-
-        if sprite.contains(&(cycle % 40)) {
-            print!("{}", "#");
-        } else {
-            print!("{}", ".");
-        }
-
-        cycle += 1;
-
-        if cycle % 40 == 0 {
-            println!();
-        }
-
-        if let Instruction::Addx(v) = ins {
-            x_reg += v;
-        }
-    }
-
-    String::new()
+    // Ignore last element
+    register_trace[0..register_trace.len() - 1]
+        // Chunk into lines
+        .chunks(40)
+        .map(|line| {
+            // Create output line
+            line.iter()
+                .enumerate()
+                // Select correct pixel
+                .map(|(pixel, x_reg)| match pixel as isize {
+                    c @ _ if c >= x_reg - 1 && c <= x_reg + 1 => '▮',
+                    _ => ' ',
+                })
+                .collect::<String>()
+        })
+        // Collect into multiline string
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn main() {
@@ -81,5 +84,6 @@ fn main() {
     let part_2 = part_2(input);
 
     println!("Part 1: {part_1}");
-    println!("Part 2: {part_2}");
+    println!("Part 2:");
+    println!("{part_2}");
 }
