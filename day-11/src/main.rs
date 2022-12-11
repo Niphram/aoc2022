@@ -2,6 +2,7 @@
 enum WorryFunction {
     Add(u64),
     Multiply(u64),
+    Double,
     Square,
 }
 
@@ -29,6 +30,7 @@ impl Monkey {
                 WorryFunction::Add(v) => *i += v,
                 WorryFunction::Multiply(v) => *i *= v,
                 WorryFunction::Square => *i *= *i,
+                WorryFunction::Double => *i += *i,
             });
 
         self.inspected_items += self.items.len();
@@ -55,16 +57,15 @@ fn parse_monkey(input: &str) -> Monkey {
 
     // Get worry function
     let worry_change = {
-        let worry_number = lines[2][25..].parse();
+        let arg = lines[2][25..].parse().ok();
 
-        if let Ok(worry_number) = worry_number {
-            match &lines[2][23..24] {
-                "*" => WorryFunction::Multiply(worry_number),
-                "+" => WorryFunction::Add(worry_number),
-                _ => panic!("Unknown operation!"),
-            }
-        } else {
-            WorryFunction::Square
+        match (&lines[2][23..24], arg) {
+            ("*", Some(v)) => WorryFunction::Multiply(v),
+            ("+", Some(v)) => WorryFunction::Add(v),
+            ("*", None) => WorryFunction::Square,
+            // Seems like this is a possibility. Was not used in my input.
+            ("+", None) => WorryFunction::Double,
+            _ => panic!("Unknown operation!"),
         }
     };
 
