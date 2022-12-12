@@ -1,106 +1,82 @@
 use std::{collections::HashMap, ops::Index};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-enum Height {
-    Value(usize),
-    Start,
-    End,
-}
-
-impl Height {
-    fn height(&self) -> usize {
-        match self {
-            Height::Value(v) => *v,
-            Height::Start => 0,
-            Height::End => 25,
-        }
-    }
-}
-
 type Pos = (usize, usize);
 
 #[derive(Debug)]
-struct Grid<T: Sized> {
+struct Dijkstra<T>
+where
+    T: Sized,
+{
     data: Vec<T>,
     width: usize,
     height: usize,
 }
 
-impl Grid<Height> {
-    fn new(data: Vec<Height>, height: usize) -> Self {
+impl<T> Index<Pos> for Dijkstra<T> {
+    type Output = T;
+
+    fn index(&self, (x, y): Pos) -> &Self::Output {
+        &self.data[y * self.width + x]
+    }
+}
+
+impl<T> Dijkstra<T> {
+    fn new(data: Vec<T>, height: usize) -> Self {
         let width = data.len() / height;
 
-        Grid {
+        Dijkstra {
             data,
             width,
             height,
         }
     }
 
-    fn width(&self) -> usize {
-        self.width
-    }
-
-    fn height(&self) -> usize {
-        self.height
-    }
-
-    fn start(&self) -> Pos {
-        let idx = self
-            .data
-            .iter()
-            .position(|pos| *pos == Height::Start)
-            .unwrap();
-
-        (idx % self.width, idx / self.width)
-    }
-
-    fn end(&self) -> Pos {
-        let idx = self
-            .data
-            .iter()
-            .position(|pos| *pos == Height::End)
-            .unwrap();
-
-        (idx % self.width, idx / self.width)
-    }
-
+    /// Simplified Dijkstra algorithm. Returns early.
     fn solve(
         &self,
         start: Pos,
-        end_fn: impl Fn(&Pos, &Height) -> bool,
-        step_fn: impl Fn(&Height, &Height) -> bool,
+        end_fn: impl Fn(&Pos, &T) -> bool,
+        step_fn: impl Fn(&T, &T) -> bool,
     ) -> Option<usize> {
-        let mut distances = HashMap::new();
-
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                distances.insert((x, y), usize::MAX);
+        // Map holds all nodes that still have to be visited and their distance from the start
+        let mut nodes = HashMap::new();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                // Set distance for every node to the max value
+                nodes.insert((x, y), usize::MAX);
             }
         }
 
-        distances.insert(start, 0);
+        // Set start position to a distance of 0
+        nodes.insert(start, 0);
 
-        while !distances.is_empty() {
-            let current = distances.iter().min_by_key(|node| node.1)?;
-            let cur_pos = *current.0;
+        // Repeat until all nodes are visited
+        while !nodes.is_empty() {
+            // Find the node with the lowest distance value, that still has to be visited
+            let cur_node = nodes.iter().min_by_key(|node| node.1)?;
+            let cur_pos = *cur_node.0;
+            let cur_dist = *cur_node.1;
 
+            // Check if the current node is the target
             if end_fn(&cur_pos, &self[cur_pos]) {
-                return Some(distances[&cur_pos]);
+                return Some(cur_dist);
             }
 
-            let current_height = &self[cur_pos];
-            let current_dist = *distances.get(&cur_pos).unwrap();
-
             let mut visit = |pos: Pos| {
-                if step_fn(current_height, &self[pos])
-                    && distances.contains_key(&pos)
-                    && distances[&pos] > current_dist
+                // Check if the node
+                // 1. Was not visited
+                // 2. Is closer than before
+                // 3. Passes the step_fn test
+                if nodes.contains_key(&pos)
+                    && nodes[&pos] > cur_dist
+                    && step_fn(&self[cur_pos], &self[pos])
                 {
-                    distances.insert(pos, current_dist + 1);
+                    // Update the distance
+                    nodes.insert(pos, cur_dist + 1);
                 }
             };
 
+            // Visit the four neighbors
             let (x, y) = cur_pos;
 
             if x > 0 {
@@ -109,73 +85,74 @@ impl Grid<Height> {
             if y > 0 {
                 visit((x, y - 1));
             }
-            if x < self.width() - 1 {
+            if x < self.width - 1 {
                 visit((x + 1, y));
             }
-            if y < self.height() - 1 {
+            if y < self.height - 1 {
                 visit((x, y + 1));
             }
 
-            distances.remove(&cur_pos);
+            // Remove the current node from map
+            nodes.remove(&cur_pos);
         }
 
         None
     }
 }
 
-impl<T> Index<Pos> for Grid<T> {
-    type Output = T;
+fn parse_input(input: &str) -> (Dijkstra<u8>, Pos, Pos) {
+    let lines: Vec<_> = input.lines().collect();
 
-    fn index(&self, (x, y): Pos) -> &Self::Output {
-        &self.data[y * self.width + x]
-    }
-}
+    let height = lines.len();
 
-fn parse_input(input: &str) -> Grid<Height> {
-    let heightmap: Vec<Vec<_>> = input
-        .lines()
-        .map(|line| {
+    let start = lines
+        .iter()
+        .enumerate()
+        .find_map(|(y, line)| line.chars().position(|c| c == 'S').map(|x| (x, y)))
+        .unwrap();
+
+    let end = lines
+        .iter()
+        .enumerate()
+        .find_map(|(y, line)| line.chars().position(|c| c == 'E').map(|x| (x, y)))
+        .unwrap();
+
+    let heightmap = lines
+        .iter()
+        .flat_map(|line| {
             line.chars()
-                .filter_map(|c| {
-                    ('a'..='z')
-                        .position(|t| t == c)
-                        .map(Height::Value)
-                        .or_else(|| match c {
-                            'S' => Some(Height::Start),
-                            'E' => Some(Height::End),
-                            _ => panic!("Unknown elevation"),
-                        })
+                .map(|c| match c {
+                    'S' => b'a',
+                    'E' => b'z',
+                    c => c as u8,
                 })
-                .collect()
+                .collect::<Vec<_>>()
         })
         .collect();
 
-    let height = heightmap.len();
-
-    Grid::new(heightmap.into_iter().flatten().collect(), height)
+    (Dijkstra::new(heightmap, height), start, end)
 }
 
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
-    let grid = parse_input(input);
+    let (grid, start, end) = parse_input(input);
 
-    let res = grid.solve(
-        grid.start(),
-        |pos, _| *pos == grid.end(),
-        |cur, next| next.height() <= cur.height() + 1,
-    );
+    // Find the shortest distance from start to end
+    let res = grid.solve(start, |pos, _| pos == &end, |cur, next| *next <= cur + 1);
 
     res.unwrap().to_string()
 }
 
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
-    let grid = parse_input(input);
+    let (grid, _, end) = parse_input(input);
 
+    // Find the shortest distance from end to any 'a'
+    // Inverted the step_fn
     let res = grid.solve(
-        grid.end(),
-        |_, height| height.height() == 0,
-        |cur, next| cur.height() <= next.height() + 1,
+        end,
+        |_, height| *height == b'a',
+        |cur, next| *cur <= next + 1,
     );
 
     res.unwrap().to_string()
