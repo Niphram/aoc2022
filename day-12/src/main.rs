@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Index,
-};
+use std::{collections::HashMap, ops::Index};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Height {
@@ -71,59 +68,55 @@ impl Grid<Height> {
     fn solve(
         &self,
         start: Pos,
-        end_fn: impl Fn(Pos, Height) -> bool,
-        step_fn: impl Fn(Height, Height) -> bool,
+        end_fn: impl Fn(&Pos, &Height) -> bool,
+        step_fn: impl Fn(&Height, &Height) -> bool,
     ) -> Option<usize> {
-        let mut dist = HashMap::new();
-        let mut unvisited = HashSet::new();
+        let mut distances = HashMap::new();
 
         for y in 0..self.height() {
             for x in 0..self.width() {
-                unvisited.insert((x, y));
+                distances.insert((x, y), usize::MAX);
             }
         }
 
-        dist.insert(start, 0);
+        distances.insert(start, 0);
 
-        while !unvisited.is_empty() {
-            let closest = dist
-                .iter()
-                .filter(|node| unvisited.contains(node.0))
-                .min_by_key(|node| node.1)?;
+        while !distances.is_empty() {
+            let current = distances.iter().min_by_key(|node| node.1)?;
+            let cur_pos = *current.0;
 
-            let (x, y) = *closest.0;
-
-            if end_fn((x, y), self[(x, y)]) {
-                return Some(dist[&(x, y)]);
+            if end_fn(&cur_pos, &self[cur_pos]) {
+                return Some(distances[&cur_pos]);
             }
 
-            let current_height = self[(x, y)];
-            let current_dist = *dist.get(&(x, y)).unwrap();
+            let current_height = &self[cur_pos];
+            let current_dist = *distances.get(&cur_pos).unwrap();
 
-            let mut visit = |x: usize, y: usize| {
-                if step_fn(current_height, self[(x, y)]) && unvisited.contains(&(x, y)) {
-                    let old = dist.get(&(x, y));
-
-                    if old.is_none() || *old.unwrap() > current_dist {
-                        dist.insert((x, y), current_dist + 1);
-                    }
+            let mut visit = |pos: Pos| {
+                if step_fn(current_height, &self[pos])
+                    && distances.contains_key(&pos)
+                    && distances[&pos] > current_dist
+                {
+                    distances.insert(pos, current_dist + 1);
                 }
             };
 
+            let (x, y) = cur_pos;
+
             if x > 0 {
-                visit(x - 1, y);
+                visit((x - 1, y));
             }
             if y > 0 {
-                visit(x, y - 1);
+                visit((x, y - 1));
             }
             if x < self.width() - 1 {
-                visit(x + 1, y);
+                visit((x + 1, y));
             }
             if y < self.height() - 1 {
-                visit(x, y + 1);
+                visit((x, y + 1));
             }
 
-            unvisited.remove(&(x, y));
+            distances.remove(&cur_pos);
         }
 
         None
@@ -168,7 +161,7 @@ fn part_1(input: &str) -> String {
 
     let res = grid.solve(
         grid.start(),
-        |pos, _| pos == grid.end(),
+        |pos, _| *pos == grid.end(),
         |cur, next| next.height() <= cur.height() + 1,
     );
 
