@@ -16,13 +16,13 @@ impl Ord for Packet {
             // If both sides are Packet::List, compare the underlying Vec<Packet>
             (Self::List(left), Self::List(right)) => left.cmp(right),
             // If the sides aren't the same, upgrade one side to a Vec<Packet> and compare Vec's
-            (Self::List(left), Self::Values(_)) => left.cmp(&vec![other.clone()]),
-            (Self::Values(_), Self::List(right)) => vec![self.clone()].cmp(right),
+            (Self::List(left), right) => left.cmp(&vec![right.clone()]),
+            (left, Self::List(right)) => vec![left.clone()].cmp(right),
         }
     }
 }
 
-/// Implemented so clippy stops shouting at me
+/// Needs to be implemented manually, if Ord is implemented
 impl PartialOrd for Packet {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
