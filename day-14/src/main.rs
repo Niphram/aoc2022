@@ -1,3 +1,39 @@
+type Pos = (isize, isize);
+
+#[derive(Debug)]
+struct Bounds {
+    top: isize,
+    right: isize,
+    bottom: isize,
+    left: isize,
+}
+
+impl Bounds {
+    fn from_pos(pos: &Pos) -> Self {
+        Bounds {
+            top: pos.1,
+            right: pos.0,
+            bottom: pos.1,
+            left: pos.0,
+        }
+    }
+
+    fn width(&self) -> usize {
+        isize::abs_diff(self.left, self.right) + 1
+    }
+
+    fn height(&self) -> usize {
+        isize::abs_diff(self.top, self.bottom) + 1
+    }
+
+    fn expand(&mut self, pos: &Pos) {
+        self.top = pos.1.min(self.top);
+        self.bottom = pos.1.max(self.bottom);
+        self.left = pos.0.min(self.left);
+        self.right = pos.0.max(self.right);
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Material {
     Air,
@@ -5,64 +41,70 @@ enum Material {
     Sand,
 }
 
-#[derive(Debug)]
 struct Simulation {
     grid: Vec<Vec<Material>>,
-    width: usize,
-    height: usize,
+    origin: Pos,
 }
 
 impl Simulation {
-    fn new(width: usize, height: usize) -> Self {
-        let grid = (0..=height)
-            .map(|_| [Material::Air].repeat(width + 1))
+    fn new(bounds: &Bounds) -> Self {
+        // Generate grid
+        let grid = (0..bounds.height())
+            .map(|_| [Material::Air].repeat(bounds.width()))
             .collect();
 
-        Self {
-            grid,
-            width,
-            height,
-        }
+        let origin = (bounds.left, bounds.top);
+
+        Self { grid, origin }
     }
 
-    fn draw_line(&mut self, material: Material, line: &[(isize, isize)]) {
+    /// Draw a line of rocks into the grid
+    fn draw_line(&mut self, line: &[Pos]) {
         for points in line.windows(2) {
             let mut start = points[0];
             let end = points[1];
 
             while start != end {
-                self.set_point(material, &start);
+                self.set(&start, Material::Rock);
 
                 start.0 += (end.0 - start.0).signum();
                 start.1 += (end.1 - start.1).signum();
             }
         }
-        self.set_point(material, line.last().unwrap());
+
+        self.set(line.last().unwrap(), Material::Rock);
     }
 
-    fn set_point(&mut self, material: Material, pos: &(isize, isize)) {
-        self.grid[pos.1 as usize][pos.0 as usize] = material;
+    /// Set position in the grid
+    fn set(&mut self, pos: &Pos, mat: Material) {
+        self.grid[(pos.1 - self.origin.1) as usize][(pos.0 - self.origin.0) as usize] = mat;
     }
 
-    fn get_point(&self, pos: &(isize, isize)) -> Option<Material> {
+    /// Check if position is air
+    fn is_free(&self, pos: &Pos) -> Option<bool> {
         self.grid
-            .get(pos.1 as usize)
-            .and_then(|row| row.get(pos.0 as usize))
-            .copied()
+            .get(usize::try_from(pos.1 - self.origin.1).ok()?)?
+            .get(usize::try_from(pos.0 - self.origin.0).ok()?)
+            .map(|&mat| mat == Material::Air)
     }
 
-    fn simulate_sand(&mut self, pos: &(isize, isize)) -> Option<(isize, isize)> {
+    /// Simulate sand falling until it can't move anymore or leaves the grid
+    fn simulate_sand(&mut self, pos: &Pos) -> Option<Pos> {
         let mut pos = *pos;
 
         loop {
-            if self.get_point(&(pos.0, pos.1 + 1))? == Material::Air {
+            if self.is_free(&(pos.0, pos.1 + 1))? {
+                // Down
                 pos = (pos.0, pos.1 + 1);
-            } else if self.get_point(&(pos.0 - 1, pos.1 + 1))? == Material::Air {
+            } else if self.is_free(&(pos.0 - 1, pos.1 + 1))? {
+                // Down-left
                 pos = (pos.0 - 1, pos.1 + 1);
-            } else if self.get_point(&(pos.0 + 1, pos.1 + 1))? == Material::Air {
+            } else if self.is_free(&(pos.0 + 1, pos.1 + 1))? {
+                // Down-right
                 pos = (pos.0 + 1, pos.1 + 1);
             } else {
-                self.set_point(Material::Sand, &pos);
+                // Can't move anymore
+                self.set(&pos, Material::Sand);
                 break;
             }
         }
@@ -71,14 +113,14 @@ impl Simulation {
     }
 }
 
-/// Compute the solution to part 1
-fn part_1(input: &str) -> String {
-    let lines: Vec<Vec<(isize, isize)>> = input
+/// Parse input into a grid and calculate bounds
+fn parse_lines(input: &str) -> (Vec<Vec<Pos>>, Bounds) {
+    let lines: Vec<Vec<Pos>> = input
         .lines()
         .map(|line| {
             line.split(" -> ")
                 .map(|point| {
-                    let (x, y) = point.split_once(',').expect("Split point into x and y");
+                    let (x, y) = point.split_once(',').unwrap();
 
                     (x.parse().unwrap(), y.parse().unwrap())
                 })
@@ -86,27 +128,29 @@ fn part_1(input: &str) -> String {
         })
         .collect();
 
-    let max_x = lines
+    // Find bounds
+    let mut bounds = Bounds::from_pos(&(500, 0));
+    lines
         .iter()
-        .map(|points| points.iter().map(|(x, _)| x).max().unwrap())
-        .max()
-        .unwrap();
+        .for_each(|points| points.iter().for_each(|pos| bounds.expand(pos)));
 
-    let max_y = lines
-        .iter()
-        .map(|points| points.iter().map(|(x, _)| x).max().unwrap())
-        .max()
-        .unwrap();
+    (lines, bounds)
+}
 
-    let mut sim = Simulation::new(*max_x as usize, *max_y as usize);
+/// Compute the solution to part 1
+fn part_1(input: &str) -> String {
+    let (lines, bounds) = parse_lines(input);
 
+    let mut sim = Simulation::new(&bounds);
+
+    // Draw all lines into simulation
     for line in lines {
-        sim.draw_line(Material::Rock, &line);
+        sim.draw_line(&line);
     }
 
+    // Simulate until sand doesn't rest
     let mut count = 0;
-
-    while let Some(_) = sim.simulate_sand(&(500, 0)) {
+    while sim.simulate_sand(&(500, 0)).is_some() {
         count += 1;
     }
 
@@ -115,50 +159,32 @@ fn part_1(input: &str) -> String {
 
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
-    let lines: Vec<Vec<(isize, isize)>> = input
-        .lines()
-        .map(|line| {
-            line.split(" -> ")
-                .map(|point| {
-                    let (x, y) = point.split_once(',').expect("Split point into x and y");
+    let (lines, mut bounds) = parse_lines(input);
 
-                    (x.parse().unwrap(), y.parse().unwrap())
-                })
-                .collect()
-        })
-        .collect();
+    // Expand bottom by 2
+    bounds.bottom += 2;
 
-    let max_x = lines
-        .iter()
-        .map(|points| points.iter().map(|(x, _)| x).max().unwrap())
-        .max()
-        .unwrap()
-        + 500;
+    // Change bounds to make sure no sand falls off
+    let height = bounds.height();
+    bounds.left = isize::min(bounds.left, 500 - (height as isize));
+    bounds.right = isize::max(bounds.right, 500 + (height as isize));
 
-    let max_y = lines
-        .iter()
-        .map(|points| points.iter().map(|(_, y)| y).max().unwrap())
-        .max()
-        .unwrap()
-        + 2;
+    let mut sim = Simulation::new(&bounds);
 
-    dbg!(max_y);
-
-    let mut sim = Simulation::new(max_x as usize, max_y as usize);
-
+    // Draw all lines into simulation
     for line in lines {
-        sim.draw_line(Material::Rock, &line);
+        sim.draw_line(&line);
     }
 
-    sim.draw_line(Material::Rock, &[(0, max_y), (max_x, max_y)]);
+    // Add ground
+    sim.draw_line(&[(bounds.left, bounds.bottom), (bounds.right, bounds.bottom)]);
 
+    // Simulate until sand comes to rest at (500, 0) or falls off
     let mut count = 0;
-
     while let Some(pos) = sim.simulate_sand(&(500, 0)) {
         count += 1;
 
         if pos == (500, 0) {
-            println!("Stuck!");
             break;
         }
     }
