@@ -1,133 +1,200 @@
-use std::collections::HashMap;
+use std::{
+    ops::{Index, IndexMut},
+    str::FromStr,
+};
 
-type Pos = (usize, usize, usize);
+#[derive(Debug, Default)]
+struct Pos {
+    x: usize,
+    y: usize,
+    z: usize,
+}
+
+impl Pos {
+    /// Create new Pos
+    fn new(x: usize, y: usize, z: usize) -> Self {
+        Pos { x, y, z }
+    }
+
+    /// elementwise maximum
+    fn max(&self, other: &Self) -> Self {
+        Self {
+            x: self.x.max(other.x),
+            y: self.y.max(other.y),
+            z: self.z.max(other.z),
+        }
+    }
+}
+
+impl FromStr for Pos {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parsed = s
+            .split(',')
+            .map(&str::parse::<usize>)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| ())?;
+
+        Ok(Pos {
+            x: parsed[0],
+            y: parsed[1],
+            z: parsed[2],
+        })
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Material {
     Air,
+    OutsideAir,
     Lava,
 }
 
 #[derive(Debug)]
 struct Grid3D {
-    grid: HashMap<Pos, Material>,
-    surface_area: usize,
-    size: (usize, usize, usize),
+    data: Vec<Material>,
+    width: usize,
+    height: usize,
+    depth: usize,
 }
 
 impl Grid3D {
-    fn new(size: (usize, usize, usize)) -> Self {
+    /// Create new grid with the given size
+    fn new(width: usize, height: usize, depth: usize) -> Self {
+        let data_len = width * height * depth;
+
         Self {
-            grid: HashMap::new(),
-            surface_area: 0,
-            size,
+            data: vec![Material::Air; data_len],
+            width,
+            height,
+            depth,
         }
     }
 
-    fn neighbors(&self, &(x, y, z): &Pos) -> impl Iterator<Item = Pos> {
+    /// Return an iterator for all neighboring cells
+    fn neighbors(&self, &Pos { x, y, z }: &Pos) -> impl Iterator<Item = Pos> {
         [
-            (x < self.size.0).then_some((x + 1, y, z)),
-            (y < self.size.1).then_some((x, y + 1, z)),
-            (z < self.size.2).then_some((x, y, z + 1)),
-            x.checked_sub(1).map(|x| (x, y, z)),
-            y.checked_sub(1).map(|y| (x, y, z)),
-            z.checked_sub(1).map(|z| (x, y, z)),
+            (x < self.width - 1).then_some(Pos::new(x + 1, y, z)),
+            (y < self.height - 1).then_some(Pos::new(x, y + 1, z)),
+            (z < self.depth - 1).then_some(Pos::new(x, y, z + 1)),
+            x.checked_sub(1).map(|x| Pos::new(x, y, z)),
+            y.checked_sub(1).map(|y| Pos::new(x, y, z)),
+            z.checked_sub(1).map(|z| Pos::new(x, y, z)),
         ]
         .into_iter()
         .flatten()
     }
 
+    /// Count the number of neighboring cells with the material
     fn count_neighbors(&self, pos: &Pos, mat: Material) -> usize {
         self.neighbors(pos)
-            .filter_map(|n| self.grid.get(&n))
-            .filter(|&m| *m == mat)
+            .map(|n| self[&n])
+            .filter(|m| *m == mat)
             .count()
     }
+}
 
-    fn put(&mut self, pos: &Pos, mat: Material) {
-        self.grid.insert(*pos, mat);
+impl FromStr for Grid3D {
+    type Err = ();
 
-        let neighbors = self.count_neighbors(pos, mat);
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let positions = s
+            .lines()
+            .map(&str::parse::<Pos>)
+            .collect::<Result<Vec<_>, _>>()?;
 
-        self.surface_area += 6;
-        self.surface_area -= neighbors * 2;
+        // Find the bounds (+3 to make sure the droplet is surrounded by air)
+        let Pos {
+            x: width,
+            y: height,
+            z: depth,
+        } = positions.iter().fold(Pos::default(), |a, b| a.max(b));
+
+        let mut grid = Grid3D::new(width + 3, height + 3, depth + 3);
+
+        // Add all positions to grid
+        for pos in positions {
+            // +1 to make sure the droplet is surrounded by air
+            let pos = Pos::new(pos.x + 1, pos.y + 1, pos.z + 1);
+            grid[&pos] = Material::Lava;
+        }
+
+        Ok(grid)
     }
+}
 
-    fn get(&self, pos: &Pos) -> Option<&Material> {
-        self.grid.get(pos)
+impl Index<&Pos> for Grid3D {
+    type Output = Material;
+
+    fn index(&self, Pos { x, y, z }: &Pos) -> &Self::Output {
+        &self.data[z * self.height * self.width + y * self.width + x]
+    }
+}
+
+impl IndexMut<&Pos> for Grid3D {
+    fn index_mut(&mut self, Pos { x, y, z }: &Pos) -> &mut Self::Output {
+        &mut self.data[z * self.height * self.width + y * self.width + x]
     }
 }
 
 /// Compute the solution to part 1
 fn part_1(input: &str) -> String {
-    let cubes = input
-        .lines()
-        .filter_map(|line| {
-            let mut coords = line
-                .split(',')
-                .map(&str::parse::<usize>)
-                .filter_map(Result::ok);
+    let grid: Grid3D = input.parse().unwrap();
 
-            Some((coords.next()?, coords.next()?, coords.next()?))
-        })
-        .collect::<Vec<Pos>>();
+    let mut area = 0;
 
-    let size = cubes
-        .iter()
-        .fold((0, 0, 0), |a, b| (a.0.max(b.0), a.1.max(b.1), a.2.max(b.2)));
+    // Check every position in the grid
+    for z in 0..grid.depth {
+        for y in 0..grid.height {
+            for x in 0..grid.width {
+                let pos = Pos::new(x, y, z);
 
-    let mut grid = Grid3D::new(size);
-
-    for cube in &cubes {
-        grid.put(cube, Material::Lava);
+                // Check if it is air
+                if grid[&pos] == Material::Air {
+                    // Count the lava-tiles next to it
+                    area += grid.count_neighbors(&pos, Material::Lava);
+                }
+            }
+        }
     }
 
-    grid.surface_area.to_string()
+    area.to_string()
 }
 
 /// Compute the solution to part 2
 fn part_2(input: &str) -> String {
-    let cubes = input
-        .lines()
-        .filter_map(|line| {
-            let mut coords = line
-                .split(',')
-                .map(&str::parse::<usize>)
-                .filter_map(Result::ok);
-
-            Some((coords.next()? + 1, coords.next()? + 1, coords.next()? + 1))
-        })
-        .collect::<Vec<Pos>>();
-
-    let size = cubes
-        .iter()
-        .fold((0, 0, 0), |a, b| (a.0.max(b.0), a.1.max(b.1), a.2.max(b.2)));
-
-    let mut grid = Grid3D::new((size.0 + 1, size.1 + 1, size.2 + 1));
-
-    for cube in &cubes {
-        grid.put(cube, Material::Lava);
-    }
+    let mut grid: Grid3D = input.parse().unwrap();
 
     // Flood fill outside
-    let mut queue = vec![(0, 0, 0)];
+    let mut queue = vec![Pos::default()];
 
     while let Some(pos) = queue.pop() {
-        if grid.get(&pos).is_none() {
-            grid.put(&pos, Material::Air);
+        if grid[&pos] == Material::Air {
+            grid[&pos] = Material::OutsideAir;
+
             for n in grid.neighbors(&pos) {
                 queue.push(n);
             }
         }
     }
 
-    // Get exposed lava
-    let area: usize = grid
-        .grid
-        .iter()
-        .filter(|(_, &mat)| mat == Material::Air)
-        .map(|(pos, _)| grid.count_neighbors(pos, Material::Lava))
-        .sum();
+    let mut area = 0;
+
+    // Check every position in the grid
+    for z in 0..grid.depth {
+        for y in 0..grid.height {
+            for x in 0..grid.width {
+                let pos = Pos::new(x, y, z);
+
+                // Check if it is outside air (produced in the flood-fill above)
+                if grid[&pos] == Material::OutsideAir {
+                    // Count the lava-tiles next to it
+                    area += grid.count_neighbors(&pos, Material::Lava);
+                }
+            }
+        }
+    }
 
     area.to_string()
 }
