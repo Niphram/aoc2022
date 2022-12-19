@@ -186,7 +186,7 @@ fn part_2(input: &str) -> String {
             println!("Finished Blueprint {}; Maximum Geodes = {}", idx + 1, res);
             res
         })
-        .sum::<usize>();
+        .product::<usize>();
 
     res.to_string()
 }
