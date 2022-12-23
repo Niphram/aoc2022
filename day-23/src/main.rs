@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap},
     fmt::Display,
     num::TryFromIntError,
     ops::Add,
@@ -7,7 +7,7 @@ use std::{
     time::Instant,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
 struct Pos {
     x: isize,
     y: isize,
@@ -28,14 +28,14 @@ impl Add for Pos {
 }
 
 struct Elves {
-    positions: HashSet<Pos>,
+    positions: BTreeSet<Pos>,
     iteration: usize,
 }
 
 impl FromStr for Elves {
     type Err = TryFromIntError;
 
-    /// Will fail, if the grid is larger than isize::MAX in any direction
+    /// Will fail, if the grid is larger than `isize::MAX` in any direction
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let positions = s
             .lines()
@@ -49,7 +49,7 @@ impl FromStr for Elves {
                         Ok(Pos::new(x, y))
                     })
             })
-            .collect::<Result<HashSet<Pos>, TryFromIntError>>()?;
+            .collect::<Result<BTreeSet<Pos>, TryFromIntError>>()?;
 
         Ok(Self {
             positions,
