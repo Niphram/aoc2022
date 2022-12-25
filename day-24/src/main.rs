@@ -332,7 +332,7 @@ fn part_2(input: &str) -> String {
 fn main() {
     let input = include_str!("input.txt");
 
-    println!("Advent of Code 2022 - Day 23");
+    println!("Advent of Code 2022 - Day 24");
 
     let part_1_res = part_1(input);
     println!("Part 1: {part_1_res}");
